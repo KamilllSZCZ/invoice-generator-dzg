@@ -291,10 +291,60 @@ fn write_json<T: serde::Serialize>(
     key: &str,
     value: &T,
 ) -> Result<(), AppError> {
-    let json = serde_json::to_string(value)
+    let mut value = serde_json::to_value(value)
+        .map_err(|_| AppError::new("serialization_error", "Could not serialize settings"))?;
+    let value_object = value.as_object_mut().ok_or_else(|| {
+        AppError::new(
+            "serialization_error",
+            "Settings payload must be a JSON object",
+        )
+    })?;
+
+    let existing: Option<String> = transaction
+        .query_row(
+            "SELECT value_json FROM settings WHERE key = ?1",
+            [key],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(AppError::from)?;
+    if let Some(existing) = existing {
+        let mut existing: serde_json::Value = serde_json::from_str(&existing).map_err(|_| {
+            AppError::new(
+                "settings_error",
+                format!("Stored {key} settings are invalid"),
+            )
+        })?;
+        let existing_object = existing.as_object_mut().ok_or_else(|| {
+            AppError::new(
+                "settings_error",
+                format!("Stored {key} settings must be a JSON object"),
+            )
+        })?;
+        merge_json_objects(existing_object, value_object);
+        value = existing;
+    }
+
+    let json = serde_json::to_string(&value)
         .map_err(|_| AppError::new("serialization_error", "Could not serialize settings"))?;
     transaction.execute("INSERT INTO settings (key, value_json) VALUES (?1, ?2) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json", [key, &json]).map_err(AppError::from)?;
     Ok(())
+}
+
+fn merge_json_objects(
+    existing: &mut serde_json::Map<String, serde_json::Value>,
+    updates: &serde_json::Map<String, serde_json::Value>,
+) {
+    for (key, update) in updates {
+        match (existing.get_mut(key), update) {
+            (Some(serde_json::Value::Object(existing)), serde_json::Value::Object(update)) => {
+                merge_json_objects(existing, update);
+            }
+            _ => {
+                existing.insert(key.clone(), update.clone());
+            }
+        }
+    }
 }
 
 fn read_limited(path: &Path) -> Result<Vec<u8>, AppError> {
@@ -443,6 +493,150 @@ mod tests {
         }
         let reopened = DatabaseState::open(directory.path().to_path_buf()).unwrap();
         assert_eq!(super::get_settings(&reopened).unwrap(), settings);
+    }
+
+    #[test]
+    fn settings_section_saves_preserve_unknown_fields_and_update_known_values() {
+        let (_directory, state) = database();
+        state.with_connection(|connection| {
+            connection.execute_batch(
+                r#"
+                INSERT INTO settings (key, value_json) VALUES
+                    ('company', '{"name":"Before","future_company":{"nested":"keep"},"future_root":true}'),
+                    ('document_defaults', '{"document_type":"invoice","future_defaults":{"nested":7}}'),
+                    ('appearance', '{"template":"classic","future_appearance":[1,2]}'),
+                    ('preferences', '{"theme":"light","future_preferences":{"nested":false}}');
+                "#,
+            ).map_err(AppError::from)?;
+            Ok(())
+        }).unwrap();
+
+        let loaded = super::get_settings(&state).unwrap();
+        assert_eq!(loaded.company.name.as_deref(), Some("Before"));
+
+        super::save_company_settings(
+            &state,
+            SellerProfile {
+                name: Some("Updated".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        super::save_document_defaults(
+            &state,
+            crate::models::settings::DocumentDefaults {
+                currency: Some("PLN".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        super::save_appearance_settings(
+            &state,
+            crate::models::settings::DocumentAppearanceSettings {
+                template: Some("modern".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        super::save_preferences(
+            &state,
+            AppPreferences {
+                theme: Some("dark".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        state
+            .with_connection(|connection| {
+                for (key, known_path, known_value, unknown_path, unknown_value) in [
+                    (
+                        "company",
+                        "name",
+                        serde_json::json!("Updated"),
+                        "future_company.nested",
+                        serde_json::json!("keep"),
+                    ),
+                    (
+                        "document_defaults",
+                        "currency",
+                        serde_json::json!("PLN"),
+                        "future_defaults.nested",
+                        serde_json::json!(7),
+                    ),
+                    (
+                        "appearance",
+                        "template",
+                        serde_json::json!("modern"),
+                        "future_appearance",
+                        serde_json::json!([1, 2]),
+                    ),
+                    (
+                        "preferences",
+                        "theme",
+                        serde_json::json!("dark"),
+                        "future_preferences.nested",
+                        serde_json::json!(false),
+                    ),
+                ] {
+                    let stored: String = connection
+                        .query_row(
+                            "SELECT value_json FROM settings WHERE key = ?1",
+                            [key],
+                            |row| row.get(0),
+                        )
+                        .map_err(AppError::from)?;
+                    let value: serde_json::Value = serde_json::from_str(&stored)
+                        .map_err(|error| AppError::new("settings_error", error.to_string()))?;
+                    assert_eq!(value[known_path], known_value, "known field for {key}");
+                    let unknown = unknown_path
+                        .split('.')
+                        .fold(&value, |current, segment| &current[segment]);
+                    assert_eq!(unknown, &unknown_value, "unknown field for {key}");
+                }
+                Ok(())
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn settings_section_save_does_not_replace_corrupted_json() {
+        let (_directory, state) = database();
+        let corrupted = "{not valid JSON";
+        state
+            .with_connection(|connection| {
+                connection
+                    .execute(
+                        "INSERT INTO settings (key, value_json) VALUES ('company', ?1)",
+                        [corrupted],
+                    )
+                    .map_err(AppError::from)?;
+                Ok(())
+            })
+            .unwrap();
+
+        let error = super::save_company_settings(
+            &state,
+            SellerProfile {
+                name: Some("Must not overwrite corruption".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "settings_error");
+        state
+            .with_connection(|connection| {
+                let stored: String = connection
+                    .query_row(
+                        "SELECT value_json FROM settings WHERE key = 'company'",
+                        [],
+                        |row| row.get(0),
+                    )
+                    .map_err(AppError::from)?;
+                assert_eq!(stored, corrupted);
+                Ok(())
+            })
+            .unwrap();
     }
 
     #[test]

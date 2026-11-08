@@ -100,7 +100,6 @@
 - Create: `src-tauri/src/commands/mod.rs`
 - Create: `src-tauri/src/commands/settings.rs`
 - Modify: `src-tauri/src/lib.rs`
-- Modify: `src-tauri/src/db/mod.rs`
 - Test: `src-tauri/src/services/settings.rs` and `src-tauri/src/commands/settings.rs` unit tests
 
 **Interfaces:**

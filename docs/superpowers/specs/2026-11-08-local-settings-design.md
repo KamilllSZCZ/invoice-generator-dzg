@@ -86,7 +86,7 @@ Każda ręczna kopia jest samodzielnym pakietem pełnej bazy i wszystkich zarzą
 ### Ustawienia aplikacji
 
 - motyw: systemowy, jasny lub ciemny;
-- podstawowe preferencje interfejsu, o ile mają bezpośrednie działanie w obecnym UI;
+- gęstość interfejsu: komfortowa lub kompaktowa, z widocznym wpływem na układ aplikacji;
 - wyświetlenie wersji aplikacji pobranej z metadanych builda, bez ręcznie utrzymywanej kopii numeru wersji.
 
 ## 3. Architektura i przepływ danych

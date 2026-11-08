@@ -1,0 +1,20 @@
+{
+  "Documents/INVOICE/AGENTS.md": {
+    "mtime": 1794153644.8259957,
+    "seen": 1794154050.820514,
+    "ast_hash": "aea55467252c9b333a07194ce9365715",
+    "semantic_hash": "aea55467252c9b333a07194ce9365715"
+  },
+  "Documents/INVOICE/PROJECT_PLAN.md": {
+    "mtime": 1794153328.7174013,
+    "seen": 1794154050.8205185,
+    "ast_hash": "c27da96560be580e71aab1afd8ba3ca9",
+    "semantic_hash": "c27da96560be580e71aab1afd8ba3ca9"
+  },
+  "Documents/INVOICE/PROMPT_01_BOOTSTRAP.md": {
+    "mtime": 1794153335.4967253,
+    "seen": 1794154050.8205202,
+    "ast_hash": "a9b51a6856a42a8285e5725449e49c4e",
+    "semantic_hash": "a9b51a6856a42a8285e5725449e49c4e"
+  }
+}

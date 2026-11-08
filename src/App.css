@@ -1,0 +1,483 @@
+:root {
+  color-scheme: dark;
+  font-family: "Bahnschrift", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --color-canvas: #17191c;
+  --color-sidebar: #1d2024;
+  --color-surface: #24282d;
+  --color-surface-raised: #2b3036;
+  --color-border: #363c42;
+  --color-text: #f1f0ed;
+  --color-muted: #9a9ea3;
+  --color-orange: #ff6f00;
+  --color-purple: #9c27b0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--color-text);
+  background: var(--color-canvas);
+}
+
+button {
+  font: inherit;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 3px;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 246px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--color-canvas);
+}
+
+.sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 28px 16px 20px;
+  background: var(--color-sidebar);
+  border-right: 1px solid #2c3035;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 8px;
+}
+
+.brand-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #17191c;
+  background: var(--color-orange);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.07em;
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 77% 100%, 0 100%);
+}
+
+.brand-name {
+  display: flex;
+  flex-direction: column;
+  color: #d3d2cf;
+  font-family: "Bahnschrift", "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.brand-name strong {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sidebar-caption {
+  margin: 48px 10px 12px;
+  color: var(--color-muted);
+  font-family: "Segoe UI", sans-serif;
+  font-size: 12px;
+}
+
+.primary-nav {
+  display: grid;
+  gap: 5px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  color: #b8bbc0;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.nav-item:hover {
+  color: #f4f3f1;
+  background: #272b30;
+}
+
+.nav-item--active {
+  color: #fff;
+  background: #30343a;
+}
+
+.nav-item--active::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -16px;
+  width: 3px;
+  background: var(--color-orange);
+  content: "";
+}
+
+.nav-item--active .nav-icon {
+  color: var(--color-orange);
+}
+
+.nav-item span:last-child {
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+.nav-icon {
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+  color: #858a90;
+}
+
+.sidebar-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: auto 8px 0;
+  padding: 14px 0 0;
+  color: #8e9399;
+  border-top: 1px solid #30343a;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sidebar-note p {
+  margin: 0;
+}
+
+.sidebar-note__mark {
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  margin-top: 5px;
+  background: var(--color-purple);
+  border-radius: 50%;
+}
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+  padding: 0 38px;
+  border-bottom: 1px solid #2a2e33;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 13px;
+}
+
+.topbar__context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #d4d5d6;
+}
+
+.topbar__product,
+.topbar__divider {
+  color: #81868d;
+}
+
+.release-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a5a9ad;
+  white-space: nowrap;
+}
+
+.release-status__dot {
+  width: 7px;
+  height: 7px;
+  background: var(--color-purple);
+  border-radius: 50%;
+}
+
+.page-content {
+  flex: 1;
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 48px 48px 56px;
+  animation: reveal 160ms ease-out;
+}
+
+.page-heading {
+  margin-bottom: 30px;
+}
+
+.page-heading h1 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.page-heading p {
+  margin: 9px 0 0;
+  color: var(--color-muted);
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+.welcome-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 246px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+}
+
+.welcome-panel__accent {
+  align-self: stretch;
+  flex: 0 0 4px;
+  background: var(--color-orange);
+}
+
+.welcome-panel__content {
+  max-width: 610px;
+  padding: 36px 42px;
+}
+
+.welcome-panel__eyebrow {
+  margin: 0 0 16px;
+  color: var(--color-orange);
+  font-family: "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.welcome-panel h2,
+.planned-panel h2 {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 620;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.welcome-panel__copy {
+  max-width: 480px;
+  margin: 14px 0 0;
+  color: #b1b5b9;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.welcome-panel__stamp {
+  position: absolute;
+  right: 42px;
+  bottom: 14px;
+  color: rgb(255 255 255 / 3%);
+  font-size: clamp(78px, 12vw, 148px);
+  font-weight: 800;
+  letter-spacing: -0.11em;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.planned-panel {
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  max-width: 720px;
+  min-height: 142px;
+  padding: 26px 28px 26px 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+}
+
+.planned-panel__line {
+  flex: 0 0 3px;
+  width: 3px;
+  margin: 2px 0;
+  background: var(--color-purple);
+}
+
+.planned-panel h2 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.planned-panel p {
+  margin: 9px 0 0;
+  color: #aeb2b6;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.workspace-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 38px;
+  color: #777d83;
+  border-top: 1px solid #2a2e33;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 11px;
+}
+
+@keyframes reveal {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+    padding: 14px 16px 10px;
+    border-right: 0;
+    border-bottom: 1px solid #2c3035;
+  }
+
+  .brand-lockup {
+    padding: 0 2px 12px;
+  }
+
+  .sidebar-caption,
+  .sidebar-note {
+    display: none;
+  }
+
+  .primary-nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 4px 0 2px;
+    scrollbar-width: thin;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 40px;
+    padding: 0 11px;
+  }
+
+  .nav-item--active::before {
+    top: auto;
+    right: 10px;
+    bottom: -2px;
+    left: 10px;
+    width: auto;
+    height: 2px;
+  }
+
+  .nav-icon {
+    width: 17px;
+    height: 17px;
+  }
+
+  .topbar {
+    min-height: 54px;
+    padding: 0 20px;
+  }
+
+  .page-content {
+    padding: 34px 20px 42px;
+  }
+
+  .welcome-panel__content {
+    padding: 30px 24px;
+  }
+
+  .welcome-panel__stamp {
+    right: 18px;
+    bottom: 6px;
+    font-size: 76px;
+  }
+
+  .workspace-footer {
+    padding: 15px 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .topbar__product,
+  .topbar__divider {
+    display: none;
+  }
+
+  .release-status {
+    font-size: 12px;
+  }
+
+  .page-content {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .welcome-panel__content {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .workspace-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}

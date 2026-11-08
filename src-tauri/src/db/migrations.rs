@@ -5,6 +5,16 @@ const MIGRATIONS: &[(i64, &str)] = &[(1, include_str!("../../migrations/0001_set
 
 pub(super) fn run(connection: &mut Connection) -> Result<(), AppError> {
     let current_version: i64 = connection.query_row("PRAGMA user_version", [], |row| row.get(0))?;
+    let latest_version = MIGRATIONS.last().map(|(version, _)| *version).unwrap_or(0);
+    if current_version > latest_version {
+        return Err(AppError::new(
+            "unsupported_schema_version",
+            format!(
+                "Database schema version {current_version} is newer than supported version {latest_version}"
+            ),
+        ));
+    }
+
     for (version, sql) in MIGRATIONS {
         if *version <= current_version {
             continue;
@@ -21,6 +31,16 @@ pub(super) fn run(connection: &mut Connection) -> Result<(), AppError> {
 mod tests {
     use crate::db::DatabaseState;
     use crate::errors::AppError;
+
+    #[test]
+    fn rejects_database_version_newer_than_supported_migrations() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        connection.pragma_update(None, "user_version", 2).unwrap();
+
+        let error = super::run(&mut connection).unwrap_err();
+
+        assert_eq!(error.code, "unsupported_schema_version");
+    }
 
     #[test]
     fn fresh_database_migrates_to_version_1() {

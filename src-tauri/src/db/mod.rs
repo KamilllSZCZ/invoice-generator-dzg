@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub struct DatabaseState {
+    assets_lock: Mutex<()>,
     connection: Mutex<Option<Connection>>,
     data_dir: PathBuf,
     assets_dir: PathBuf,
@@ -27,6 +28,7 @@ impl DatabaseState {
         migrations::run(&mut connection)?;
 
         Ok(Self {
+            assets_lock: Mutex::new(()),
             connection: Mutex::new(Some(connection)),
             data_dir: active_data_dir,
             assets_dir,
@@ -48,8 +50,25 @@ impl DatabaseState {
         operation(connection)
     }
 
+    pub(crate) fn with_assets<T>(&self, operation:impl FnOnce()->Result<T,AppError>)->Result<T,AppError> {
+        let _guard=self.assets_lock.lock().map_err(|_|AppError::new("assets_lock_error","Nie można uzyskać dostępu do zasobów."))?;
+        operation()
+    }
+
     pub fn data_dir(&self) -> &Path {
         &self.data_dir
+    }
+
+    pub(crate) fn with_exclusive<T>(&self, operation: impl FnOnce(&mut Option<Connection>) -> Result<T,AppError>) -> Result<T,AppError> {
+        let mut guard=self.connection.lock().map_err(|_| AppError::new("database_lock_error","Nie można uzyskać dostępu do danych."))?;
+        operation(&mut guard)
+    }
+
+    pub(crate) fn reopen(&self) -> Result<Connection,AppError> {
+        let mut c=Connection::open(self.data_dir.join("app.sqlite"))?;
+        c.busy_timeout(std::time::Duration::from_secs(5))?;
+        migrations::run(&mut c)?;
+        Ok(c)
     }
 
     pub fn assets_dir(&self) -> &Path {

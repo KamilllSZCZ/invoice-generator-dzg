@@ -78,6 +78,7 @@ pub fn save_document_defaults(
     state: &DatabaseState,
     input: DocumentDefaults,
 ) -> Result<DocumentDefaults, AppError> {
+    validate_document_defaults(&input)?;
     state.with_connection(|connection| {
         let transaction = connection.transaction().map_err(AppError::from)?;
         write_json(&transaction, "document_defaults", &input)?;
@@ -113,6 +114,9 @@ pub fn save_preferences(
 }
 
 pub fn set_company_logo(state: &DatabaseState, source: PathBuf) -> Result<SellerProfile, AppError> {
+    state.with_assets(||set_company_logo_locked(state,source))
+}
+fn set_company_logo_locked(state: &DatabaseState, source: PathBuf) -> Result<SellerProfile, AppError> {
     let company = get_company_profile(state)?;
     let source_name = source
         .file_name()
@@ -164,6 +168,9 @@ pub fn set_company_logo(state: &DatabaseState, source: PathBuf) -> Result<Seller
 }
 
 pub fn remove_company_logo(state: &DatabaseState) -> Result<SellerProfile, AppError> {
+    state.with_assets(||remove_company_logo_locked(state))
+}
+fn remove_company_logo_locked(state: &DatabaseState) -> Result<SellerProfile, AppError> {
     let company = get_company_profile(state)?;
     let old_path = state.with_connection(|connection| {
         let transaction = connection.transaction().map_err(AppError::from)?;
@@ -182,11 +189,15 @@ pub fn remove_company_logo(state: &DatabaseState) -> Result<SellerProfile, AppEr
         transaction.commit().map_err(AppError::from)?;
         Ok(old_path)
     })?;
+    let old_path=old_path.map(|p|if p.is_absolute(){p}else{state.assets_dir().join(p)});
     remove_unreferenced_managed_logo(state, old_path.as_deref());
     Ok(company)
 }
 
 pub fn get_company_logo_data_url(state: &DatabaseState) -> Result<Option<String>, AppError> {
+    state.with_assets(||get_company_logo_data_url_locked(state))
+}
+fn get_company_logo_data_url_locked(state: &DatabaseState) -> Result<Option<String>, AppError> {
     let path = get_logo_reference(state)?;
     let Some(path) = path else {
         return Ok(None);
@@ -224,6 +235,10 @@ fn get_company_profile(state: &DatabaseState) -> Result<SellerProfile, AppError>
 }
 
 fn validate_company(company: &SellerProfile) -> Result<(), AppError> {
+    if let Some(url)=&company.website {
+        let host=url.strip_prefix("https://").or_else(||url.strip_prefix("http://")).unwrap_or_default().split('/').next().unwrap_or_default();
+        if host.is_empty() || url.chars().any(char::is_whitespace) {return Err(validation_error("website","Podaj adres z http:// lub https://."));}
+    }
     if let Some(email) = &company.email {
         let trimmed = email.trim();
         let valid = trimmed == email
@@ -235,17 +250,24 @@ fn validate_company(company: &SellerProfile) -> Result<(), AppError> {
                     && !domain.ends_with('.')
             });
         if !valid {
-            return Err(validation_error("email", "Enter a valid email address"));
+            return Err(validation_error("email", "Podaj prawidłowy adres e-mail."));
         }
     }
     Ok(())
 }
 
-fn validate_appearance(_appearance: &DocumentAppearanceSettings) -> Result<(), AppError> {
+fn validate_document_defaults(input:&DocumentDefaults)->Result<(),AppError> {
+    if input.document_type.as_str()!="invoice" {return Err(validation_error("document_type","Nieobsługiwany typ dokumentu."));}
+    if input.currency.as_ref().is_some_and(|c|c.len()!=3||!c.bytes().all(|b|b.is_ascii_uppercase())) {return Err(validation_error("currency","Podaj trzyliterowy kod waluty, np. PLN."));}
+    if input.payment_term_days.is_some_and(|d|d>3650) {return Err(validation_error("payment_term_days","Termin płatności: od 0 do 3650 dni."));}Ok(())
+}
+fn validate_appearance(appearance: &DocumentAppearanceSettings) -> Result<(), AppError> {
+    if appearance.template.as_ref().is_some_and(|s|!["classic","modern"].contains(&s.as_str())) {return Err(validation_error("template","Nieobsługiwany wariant dokumentu."));}
     Ok(())
 }
 
 fn validate_preferences(preferences: &AppPreferences) -> Result<(), AppError> {
+    if preferences.density.as_ref().is_some_and(|s|!["comfortable","compact"].contains(&s.as_str())) {return Err(validation_error("density","Wybierz gęstość komfortową lub kompaktową."));}
     if let Some(theme) = &preferences.theme {
         if !["light", "dark", "system"].contains(&theme.as_str()) {
             return Err(validation_error(
@@ -424,7 +446,7 @@ fn get_logo_reference(state: &DatabaseState) -> Result<Option<PathBuf>, AppError
             )
             .optional()
             .map_err(AppError::from)?;
-        Ok(value.and_then(|json| serde_json::from_str::<PathBuf>(&json).ok()))
+        Ok(value.and_then(|json| serde_json::from_str::<PathBuf>(&json).ok()).map(|p|if p.is_absolute(){p}else{state.assets_dir().join(p)}))
     })
 }
 
@@ -432,10 +454,10 @@ fn set_logo_reference(state: &DatabaseState, path: &Path) -> Result<Option<PathB
     state.with_connection(|connection| {
         let transaction = connection.transaction().map_err(AppError::from)?;
         let old_path: Option<String> = transaction.query_row("SELECT value_json FROM settings WHERE key = ?1", [COMPANY_LOGO_KEY], |row| row.get::<_, String>(0)).optional().map_err(AppError::from)?;
-        let encoded_path = serde_json::to_string(path).map_err(|_| AppError::new("serialization_error", "Could not serialize logo path"))?;
+        let encoded_path = serde_json::to_string(&path.file_name().and_then(|s|s.to_str()).ok_or_else(||validation_error("logo","Nieprawidłowa nazwa logo."))?).map_err(|_| AppError::new("serialization_error", "Could not serialize logo path"))?;
         transaction.execute("INSERT INTO settings (key, value_json) VALUES (?1, ?2) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json", [COMPANY_LOGO_KEY, &encoded_path]).map_err(AppError::from)?;
         transaction.commit().map_err(AppError::from)?;
-        Ok(old_path.and_then(|value| serde_json::from_str(&value).ok()))
+        Ok(old_path.and_then(|value| serde_json::from_str::<PathBuf>(&value).ok()).map(|p|if p.is_absolute(){p}else{state.assets_dir().join(p)}))
     })
 }
 
@@ -470,6 +492,16 @@ mod tests {
     use crate::errors::AppError;
     use crate::models::settings::{AppPreferences, AppSettings, SellerProfile};
     use std::fs;
+
+    #[test] fn document_defaults_and_preferences_are_validated_atomically() {
+        let (_d,s)=database();
+        let bad=crate::models::settings::DocumentDefaults{currency:Some("invalid".into()),..Default::default()};
+        assert!(super::save_document_defaults(&s,bad).is_err());
+        let bad=AppPreferences{density:Some("unknown".into()),..Default::default()};assert!(super::save_preferences(&s,bad).is_err());
+        let bad=crate::models::settings::DocumentAppearanceSettings{template:Some("not-implemented".into()),..Default::default()};assert!(super::save_appearance_settings(&s,bad).is_err());
+        let mut good=crate::models::settings::DocumentDefaults::default();good.issue_place=Some("Łańcut".into());good.notes=Some("Dziękujemy".into());
+        super::save_document_defaults(&s,good.clone()).unwrap();assert_eq!(super::get_settings(&s).unwrap().document_defaults,good);
+    }
 
     fn database() -> (tempfile::TempDir, DatabaseState) {
         let directory = tempfile::tempdir().unwrap();

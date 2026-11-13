@@ -7,7 +7,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
     (2, include_str!("../../migrations/0002_numbering.sql")),
 ];
 
-pub(super) fn run(connection: &mut Connection) -> Result<(), AppError> {
+pub(crate) fn run(connection: &mut Connection) -> Result<(), AppError> {
     let current_version: i64 = connection.query_row("PRAGMA user_version", [], |row| row.get(0))?;
     let latest_version = MIGRATIONS.last().map(|(version, _)| *version).unwrap_or(0);
     if current_version > latest_version {

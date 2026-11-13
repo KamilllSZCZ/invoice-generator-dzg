@@ -9,6 +9,8 @@ pub fn run() {
     use tauri::Manager;
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             let state = db::DatabaseState::open(app_data_dir).map_err(|error| {
@@ -18,6 +20,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::backup::create_backup,
+            commands::backup::inspect_backup,
+            commands::backup::restore_backup,
+            commands::backup::get_data_location,
             commands::settings::get_settings,
             commands::settings::get_numbering_settings,
             commands::settings::save_numbering_settings,

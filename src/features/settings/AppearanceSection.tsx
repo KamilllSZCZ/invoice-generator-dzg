@@ -1,0 +1,14 @@
+import type { SettingsApi } from "./api";
+import type { DocumentAppearanceSettings } from "./types";
+import { Field,SaveFeedback,useSectionForm } from "./SectionForm";
+import { optional } from "./validation";
+export function AppearanceSection({value,api,onSaved,onDirty,logo}:{value:DocumentAppearanceSettings;api:SettingsApi;onSaved:(v:DocumentAppearanceSettings)=>void;onDirty:(b:boolean)=>void;logo:string|null}) {
+  const f=useSectionForm(value,api.saveAppearanceSettings,onSaved,onDirty);
+  const toggles:[keyof Pick<DocumentAppearanceSettings,"show_logo"|"show_address"|"show_email"|"show_phone"|"show_website"|"show_bank_account">,string][]=[["show_logo","Pokaż logo"],["show_address","Pokaż adres"],["show_email","Pokaż e-mail"],["show_phone","Pokaż telefon"],["show_website","Pokaż stronę internetową"],["show_bank_account","Pokaż rachunek bankowy"]];
+  return <form onSubmit={f.submit}><h2>Wygląd dokumentów</h2><p className="settings-description">Podgląd zawiera wyłącznie dane przykładowe. Ustawienia będą dostępne dla przyszłego modułu dokumentów.</p><fieldset disabled={f.busy}><legend className="sr-only">Wygląd dokumentów</legend><div className="settings-grid">
+    <div className="settings-field"><label htmlFor="document-template">Wariant dokumentu</label><select id="document-template" value={f.draft.template??"classic"} onChange={e=>f.update({template:e.target.value})}><option value="classic">Klasyczny</option><option value="modern">DZG</option></select></div>
+    <Field name="document-footer" label="Stopka dokumentu" value={f.draft.footer??""} onChange={v=>f.update({footer:optional(v)})} multiline/>
+    </div><div className="visibility-toggles">{toggles.map(([key,label])=><label key={key}><input type="checkbox" checked={f.draft[key]??true} onChange={e=>f.update({[key]:e.target.checked})}/>{label}</label>)}</div>
+    <div className={`document-sample document-sample--${f.draft.template??"classic"}`} aria-label="Przykładowy dokument"><div className="sample-watermark">WZÓR · DANE PRZYKŁADOWE</div><div className="sample-heading"><strong>Faktura · WZÓR/1</strong>{(f.draft.show_logo??true)&&(logo?<img src={logo} alt="Przykład użycia logo"/>:<span className="sample-logo">LOGO</span>)}</div><div className="sample-parties"><div><strong>Przykładowy sprzedawca</strong>{(f.draft.show_address??true)&&<p>ul. Przykładowa 1<br/>00-000 Miejscowość</p>}{(f.draft.show_email??true)&&<p>biuro@example.test</p>}{(f.draft.show_phone??true)&&<p>Telefon przykładowy</p>}{(f.draft.show_website??true)&&<p>https://example.test</p>}</div><div><strong>Przykładowy nabywca</strong><p>Dane nabywcy</p></div></div><div className="sample-item">1. Przykładowa usługa <span>1 szt.</span></div>{(f.draft.show_bank_account??true)&&<p className="sample-bank">Rachunek: dane przykładowe</p>}<footer>{f.draft.footer||"Miejsce na stopkę dokumentu"}</footer></div>
+    <SaveFeedback {...f} label="Zapisz wygląd dokumentów"/></fieldset></form>;
+}

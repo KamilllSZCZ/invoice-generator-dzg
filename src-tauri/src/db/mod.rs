@@ -1,4 +1,4 @@
-mod migrations;
+pub(crate) mod migrations;
 
 use crate::errors::AppError;
 use rusqlite::Connection;
@@ -23,6 +23,7 @@ impl DatabaseState {
 
         let database_path = active_data_dir.join("app.sqlite");
         let mut connection = Connection::open(database_path)?;
+        connection.busy_timeout(std::time::Duration::from_secs(5))?;
         migrations::run(&mut connection)?;
 
         Ok(Self {

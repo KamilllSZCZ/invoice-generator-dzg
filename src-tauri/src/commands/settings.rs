@@ -5,6 +5,20 @@ use crate::models::settings::{
 };
 use std::path::PathBuf;
 use tauri::State;
+use crate::models::settings::{NumberingSeriesSettings, NumberPreview, DocumentTypeKey};
+
+#[tauri::command]
+pub fn get_numbering_settings(state: State<'_, DatabaseState>) -> Result<Vec<NumberingSeriesSettings>, AppError> {
+    crate::services::numbering::get_numbering_settings(&state)
+}
+#[tauri::command]
+pub fn save_numbering_settings(state: State<'_, DatabaseState>, input: NumberingSeriesSettings) -> Result<NumberingSeriesSettings, AppError> {
+    crate::services::numbering::save_numbering_settings(&state, input)
+}
+#[tauri::command]
+pub fn preview_next_number(state: State<'_, DatabaseState>, document_type: DocumentTypeKey) -> Result<NumberPreview, AppError> {
+    crate::services::numbering::preview_next_number(&state, document_type)
+}
 
 #[tauri::command]
 pub fn get_settings(state: State<'_, DatabaseState>) -> Result<AppSettings, AppError> {

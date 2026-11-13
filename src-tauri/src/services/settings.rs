@@ -23,14 +23,14 @@ pub fn get_settings(state: &DatabaseState) -> Result<AppSettings, AppError> {
         let appearance = read_json(connection, "appearance")?.unwrap_or_default();
         let preferences = read_json(connection, "preferences")?.unwrap_or_default();
         let mut statement = connection.prepare(
-            "SELECT document_type, prefix, format, counter_period, next_counter FROM numbering_series ORDER BY document_type",
+            "SELECT document_type, prefix, format, reset_policy, next_counter FROM numbering_series ORDER BY document_type",
         ).map_err(AppError::from)?;
         let numbering = statement.query_map([], |row| {
             Ok(crate::models::settings::NumberingSeriesSettings {
                 document_type: crate::models::settings::DocumentTypeKey::new(row.get::<_, String>(0)?),
                 prefix: row.get(1)?,
                 format: row.get(2)?,
-                reset_policy: row.get(3)?,
+                reset_policy: serde_json::from_value(serde_json::Value::String(row.get(3)?)).map_err(|e| rusqlite::Error::FromSqlConversionFailure(3,rusqlite::types::Type::Text,Box::new(e)))?,
                 next_counter: u64::try_from(row.get::<_, i64>(4)?).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(4, -1))?,
             })
         }).map_err(AppError::from)?.collect::<Result<Vec<_>, _>>().map_err(AppError::from)?;
@@ -53,8 +53,8 @@ pub fn save_settings(state: &DatabaseState, settings: &AppSettings) -> Result<()
             let next_counter = i64::try_from(series.next_counter)
                 .map_err(|_| validation_error("numbering", "Numbering counter is too large"))?;
             transaction.execute(
-                "INSERT INTO numbering_series (document_type, prefix, format, counter_period, next_counter) VALUES (?1, ?2, ?3, ?4, ?5)",
-                rusqlite::params![series.document_type.as_str(), series.prefix, series.format, series.reset_policy, next_counter],
+                "INSERT INTO numbering_series (document_type, prefix, format, reset_policy, next_counter) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![series.document_type.as_str(), series.prefix, series.format, serde_json::to_value(series.reset_policy).unwrap().as_str().unwrap_or("never"), next_counter],
             ).map_err(AppError::from)?;
         }
         transaction.commit().map_err(AppError::from)

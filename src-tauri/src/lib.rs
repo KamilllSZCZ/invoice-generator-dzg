@@ -19,6 +19,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::settings::get_settings,
+            commands::settings::get_numbering_settings,
+            commands::settings::save_numbering_settings,
+            commands::settings::preview_next_number,
             commands::settings::get_app_version,
             commands::settings::save_company_settings,
             commands::settings::set_company_logo,

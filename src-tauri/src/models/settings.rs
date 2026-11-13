@@ -43,9 +43,22 @@ pub struct NumberingSeriesSettings {
     pub document_type: DocumentTypeKey,
     pub prefix: String,
     pub format: String,
-    pub reset_policy: Option<String>,
+    pub reset_policy: Option<NumberResetPolicy>,
     pub next_counter: u64,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NumberResetPolicy { Yearly, Monthly, Never }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NumberPreview {
+    pub document_type: DocumentTypeKey,
+    pub formatted_number: String,
+    pub period_key: String,
+    pub counter: u64,
+}
+pub type IssuedNumber = NumberPreview;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct DocumentAppearanceSettings {

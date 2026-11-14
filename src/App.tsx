@@ -1,5 +1,7 @@
 import { useEffect,useState } from "react";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { CustomersPage } from "./features/customers/CustomersPage";
+import { ConfirmDialog } from "./shared/components/ConfirmDialog";
 import { settingsApi } from "./features/settings/api";
 import type { AppPreferences } from "./features/settings/types";
 import "./App.css";
@@ -39,10 +41,13 @@ function NavIcon({ section }: { section: SectionId }) {
 function App() {
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
   const [settingsDirty,setSettingsDirty]=useState(false);
+  const [customersDirty,setCustomersDirty]=useState(false);
+  const [pendingSection,setPendingSection]=useState<SectionId|null>(null);
   const [preferences,setPreferences]=useState<AppPreferences>({language:null,theme:null,density:null});
   useEffect(()=>{let active=true;settingsApi.getSettings().then(s=>{if(active)setPreferences(s.preferences);}).catch(()=>{/* The settings page reports database errors with a retry action. */});return()=>{active=false;};},[]);
   useEffect(()=>{const media=window.matchMedia?.("(prefers-color-scheme: dark)");const apply=()=>{document.documentElement.dataset.theme=preferences.theme==="system"?(media?.matches?"dark":"light"):(preferences.theme??"dark");document.documentElement.dataset.density=preferences.density??"comfortable";};apply();media?.addEventListener("change",apply);return()=>media?.removeEventListener("change",apply);},[preferences]);
-  function navigate(section:SectionId){if(section===activeSection)return;if(activeSection==="settings"&&settingsDirty&&!window.confirm("Odrzucić niezapisane zmiany ustawień?"))return;setSettingsDirty(false);setActiveSection(section);}
+  function commitNavigation(section:SectionId){setSettingsDirty(false);setCustomersDirty(false);setActiveSection(section);setPendingSection(null);}
+  function navigate(section:SectionId){if(section===activeSection)return;if((activeSection==="settings"&&settingsDirty)||(activeSection==="customers"&&customersDirty)){setPendingSection(section);return;}commitNavigation(section);}
   const currentSection = sections.find((section) => section.id === activeSection) ?? sections[0];
 
   return (
@@ -108,6 +113,8 @@ function App() {
             </section>
           ) : activeSection === "settings" ? (
             <SettingsPage onPreferencesChanged={setPreferences} onDirtyChanged={setSettingsDirty}/>
+          ) : activeSection === "customers" ? (
+            <CustomersPage onDirtyChanged={setCustomersDirty}/>
           ) : (
             <section className="planned-panel" aria-live="polite">
               <span className="planned-panel__line" aria-hidden="true" />
@@ -124,6 +131,7 @@ function App() {
           <span>Fundament · etap 1</span>
         </footer>
       </div>
+      {pendingSection&&<ConfirmDialog title={activeSection==="settings"?"Niezapisane zmiany ustawień":"Niezapisane zmiany kontrahenta"} confirmLabel="Odrzuć zmiany" onCancel={()=>setPendingSection(null)} onConfirm={()=>commitNavigation(pendingSection)}><p>{activeSection==="settings"?"Opuścić panel i odrzucić niezapisane zmiany ustawień?":"Opuścić kartotekę i odrzucić niezapisane zmiany kontrahenta?"}</p></ConfirmDialog>}
     </div>
   );
 }

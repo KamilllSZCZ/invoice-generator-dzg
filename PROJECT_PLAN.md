@@ -131,3 +131,10 @@ Każdy etap kończy się działającą wersją, testami i krótką aktualizacją
 - Tauri — tworzenie projektu: https://v2.tauri.app/start/create-project/
 - Tauri — czym jest framework: https://v2.tauri.app/start/
 - Tauri — konfiguracja frontendu i rekomendacja Vite: https://v2.tauri.app/start/frontend/
+
+## 12. Stan realizacji (2026-11-14)
+
+- Fundament aplikacji, lokalne SQLite z migracjami, panel ustawień, numeracja i pełne kopie zapasowe są zaimplementowane. Natywna weryfikacja ustawień i kopii została zakończona.
+- Kartoteka kontrahentów z etapu 3 jest zaimplementowana: dodawanie, edycja, podgląd, wyszukiwanie i potwierdzane usuwanie, z ochroną powiązań przez klucze obce. Migracja `0003` zachowuje wcześniejsze dane; kopie obejmują nową kartotekę. Testy obejmują niezmienność testowej migawki dokumentu po edycji kontrahenta.
+- Weryfikacja: 24 testy frontendu, 55 testów Rust, build TypeScript/Vite i `cargo check` przechodzą. Natywnie sprawdzono kontrahentów, zapis po restarcie, walidację IPC oraz dialogi odrzucania zmian i usuwania na osobnym profilu testowym.
+- Następny krok: katalog usług i produktów, pozostała część etapu 3. Silnik obliczeń, wystawianie faktur, PDF i historia dokumentów pozostają na kolejne etapy. Instalator Windows i wydanie produkcyjne nie zostały jeszcze zweryfikowane.

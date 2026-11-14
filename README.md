@@ -1,6 +1,6 @@
 # DualZone Garage
 
-Lokalny generator dokumentów rozwijany w Tauri 2, React, TypeScript, Rust i SQLite. Panel **Ustawienia** jest dostępny; Faktury, Kontrahenci i Katalog pozostają oznaczone jako moduły w przygotowaniu.
+Lokalny generator dokumentów rozwijany w Tauri 2, React, TypeScript, Rust i SQLite. Dostępne są **Ustawienia** i **Kontrahenci**; Faktury i Katalog pozostają oznaczone jako moduły w przygotowaniu.
 
 ## Uruchomienie i weryfikacja
 
@@ -32,6 +32,15 @@ npm run tauri build
 
 Każda sekcja zapisuje się niezależnie i atomowo przez jawne komendy Rust. Szkice pozostają po przełączeniu sekcji; opuszczenie panelu z niezapisanymi zmianami wymaga potwierdzenia. Edycja sprzedawcy nie modyfikuje historycznych migawek dokumentów.
 
+## Kartoteka kontrahentów
+
+- Dodawanie, edycja i podgląd nazwy, identyfikatora podatkowego, adresu, kraju, e-maila, telefonu oraz notatek. Wymagana jest tylko nazwa; aplikacja nie podstawia kraju ani danych rejestrowych. Identyfikator podatkowy może być zagraniczny; ten etap nie weryfikuje poprawności rejestrowej NIP.
+- Wyszukiwanie po nazwie, identyfikatorze podatkowym lub miejscowości działa lokalnie, bez rozróżniania wielkości polskich liter. Znaki `%`, `_` i apostrofy są traktowane dosłownie. Lista rozróżnia pustą kartotekę, brak wyników i błąd odczytu z możliwością ponowienia.
+- Zapis jest atomowy i walidowany w Rust. Puste pola opcjonalne są przechowywane jako brak wartości, a zbędne spacje na początku i końcu są usuwane. Błąd zapisu zachowuje formularz i pokazuje błędy pól.
+- Usuwanie wymaga dialogu z nazwą kontrahenta i osobnym przyciskiem zatwierdzenia. „Anuluj” nie zmienia danych. Klucze obce SQLite są włączone także po ponownym otwarciu i przywróceniu bazy; powiązanie dokumentu z `ON DELETE RESTRICT` blokuje usunięcie. Moduł dokumentów jest jeszcze w przygotowaniu; kontrakt powiązań i niezmienność migawki przy edycji kontrahenta są sprawdzone na testowych dokumentach.
+- Przełączenie kontrahenta, anulowanie edycji i opuszczenie modułu ze szkicem wymagają jawnego potwierdzenia odrzucenia zmian. Wspólny dialog aplikacji chroni też opuszczenie niezapisanych ustawień. Niezapisane formularze kontrahenta nie są trwałymi wersjami roboczymi.
+- Pełna kopia zapasowa obejmuje kontrahentów. Kopie ze schematu `0001`/`0002` są migrowane przed przywróceniem; dotychczasowe ustawienia zostają zachowane, a kartoteka zaczyna jako pusta. Przywrócenie starszej pełnej kopii zastępuje również bieżącą kartotekę, zgodnie z ostrzeżeniem o zastąpieniu wszystkich danych.
+
 ## Lokalizacja danych
 
 Baza znajduje się w katalogu użytkownika wyznaczonym przez Tauri, poza folderem instalacji i źródłami. W standardowej konfiguracji Windows jest to `%APPDATA%\pl.dualzonegarage.invoices`:
@@ -47,7 +56,7 @@ pl.dualzonegarage.invoices/
 
 Dokładna ścieżka jest widoczna w **Ustawienia → Kopie zapasowe**. Przycisk otwarcia folderu może otworzyć wyłącznie zarządzany katalog danych aplikacji. Jedna instancja programu może korzystać z danego profilu; osobne profile testowe mają osobne identyfikatory i blokady.
 
-Schemat jest aktualizowany transakcyjnie migracjami `0001` i `0002`. Nowsza nieobsługiwana wersja bazy jest odrzucana. Dane pozostają w tym samym katalogu przy aktualizacji aplikacji.
+Schemat jest aktualizowany transakcyjnie migracjami `0001`, `0002` i `0003` (kontrahenci). Nowsza nieobsługiwana wersja bazy jest odrzucana. Dane pozostają w tym samym katalogu przy aktualizacji aplikacji.
 
 ## Tworzenie kopii i przywracanie
 
@@ -62,7 +71,7 @@ Format kopii v1 używa ZIP32, bez szyfrowania, ZIP64, archiwów wieloczęściowy
 
 ## Obecne ograniczenia
 
-Panel nie wystawia faktur i nie generuje PDF. Pozostałe moduły, KSeF, synchronizacja chmurowa, logowanie i księgowość są poza zakresem. Numeracja udostępnia warstwę transakcyjną dla przyszłego wystawiania. Podgląd używa lokalnej daty systemowej, a nazwy i manifesty kopii czasu UTC.
+Program nie wystawia faktur i nie generuje PDF. Faktury i katalog pozostają w przygotowaniu. KSeF, synchronizacja chmurowa, logowanie i księgowość są poza zakresem bieżących prac. Numeracja udostępnia warstwę transakcyjną dla przyszłego wystawiania. Podgląd używa lokalnej daty systemowej, a nazwy i manifesty kopii czasu UTC.
 
 Rust sprawdza migracje, zapis po ponownym otwarciu, opcjonalny profil, niezmienność migawek, numerację i współbieżność, pełne kopie, walidację, wycofanie i odzyskiwanie. Vitest/RTL sprawdza formularze, błędy, szkice, preferencje i jawne potwierdzanie kopii.
 
@@ -73,6 +82,19 @@ Rust sprawdza migracje, zapis po ponownym otwarciu, opcjonalny profil, niezmienn
 - `cargo test --manifest-path src-tauri/Cargo.toml --offline`: 46/46 testów Rust.
 - `cargo check --manifest-path src-tauri/Cargo.toml --offline`: bez błędów. Środowisko nie obsługuje hardlinków cache; wyłączenie kompilacji przyrostowej usuwa ostrzeżenie bez zmiany kodu.
 - `npm run tauri build -- --debug --no-bundle --config <konfiguracja-testowa>`: natywny build Windows bez instalatora. Profil ma osobny identyfikator, więc nie używa właściwych danych aplikacji.
-- Natywne okno uruchomiło się, odczytało ustawienia przez IPC i pozwoliło edytować testowy profil. Pełny ręczny scenariusz zapisu po restarcie oraz eksportu/przywracania przez systemowe dialogi pozostaje do wykonania: sterowanie oknem przerywało operacje błędami geometrii i aktywnego procesu. Odpowiadające scenariusze usług i formularzy przechodzą testy automatyczne.
+- `npm run tauri dev -- --config <konfiguracja-testowa>`: pełny scenariusz natywny na osobnym profilu `pl.dualzonegarage.smoke20261114b`, bez korzystania z właściwych danych aplikacji. Zapisano sprzedawcę i logo PNG wybrane w systemowym dialogu, ustawienia dokumentów, numerację, wariant DZG, stopkę z polskimi znakami oraz jasny/kompaktowy interfejs. Po zamknięciu i ponownym uruchomieniu wszystkie te wartości pozostały zachowane. Podgląd numeracji pokazał `TEST/2026/1`, pozostawiając licznik równy `1`.
+- Systemowe dialogi pozwoliły zapisać dwie kopie ZIP w różnych katalogach. Po zmianie nazwy i logo uszkodzona kopia została odrzucona z komunikatem „Brak katalogu końcowego ZIP.”; porównanie zawartości ustawień, numeracji i sum SHA-256 zasobów potwierdziło brak zmian aktywnych danych.
+- Poprawna kopia wyświetliła podsumowanie i wymagała zaznaczenia zgody przed aktywacją przycisku zastąpienia danych. Przywrócone ustawienia, numeracja i logo odpowiadają oryginalnej kopii. Zweryfikowano również, że automatyczne archiwum `recovery/before-restore.zip` zawiera stan sprzed przywrócenia. Panel odświeżył nazwę i logo po operacji.
 
-Instalator Windows i wydanie produkcyjne nie były testowane w tym etapie.
+Weryfikacja panelu ustawień jest zakończona. Instalator Windows i wydanie produkcyjne nie były testowane w tym etapie.
+
+## Wynik weryfikacji kontrahentów (2026-11-14)
+
+- `npm test`: 24/24 testy w ośmiu plikach. Nowe scenariusze obejmują zapis, wyszukiwanie, ponowienie odczytu, błędy walidacji, odrzucanie szkiców, jawne dialogi i spóźnione odpowiedzi wyszukiwania.
+- `npm run build`: TypeScript i produkcyjny frontend Vite bez błędów.
+- `cargo test --manifest-path src-tauri/Cargo.toml --offline`: 55/55 testów, w tym dziewięć nowych testów kontrahentów, powiązań i kopii.
+- `cargo check --manifest-path src-tauri/Cargo.toml --offline`: bez błędów. Kontrola źródeł nowego interfejsu przez lint design-taste-frontend: 0 błędów i 0 ostrzeżeń.
+- Natywny profil `pl.dualzonegarage.smoke20261114b` przeszedł migrację do schematu `3`. Sprawdzono dodanie, podgląd, wyszukiwanie `ŁÓDŹ`, błąd e-maila zwrócony przez IPC, poprawienie i zapis edycji oraz zachowanie danych po zamknięciu i ponownym uruchomieniu.
+- Skontrolowano wygląd w natywnych oknach o szerokości 1280 i 800 px. Dialog odrzucenia szkicu zachował dane po wybraniu „Anuluj”. Dialog usuwania wyświetlił nazwę kontrahenta; anulowanie zachowało wpis, a jawne zatwierdzenie usunęło go. Po usunięciu baza profilu testowego zawierała zero kontrahentów. Testy nie używały właściwego profilu aplikacji.
+
+Kolejny zakres z etapu 3 to katalog usług i produktów. Wystawianie faktur, PDF i test instalatora pozostają na później.

@@ -566,7 +566,7 @@ fn validate_archive(source: &Path) -> Result<ValidatedBackup, AppError> {
     super::settings::validate_database(&connection)?;
     let mut expected = Connection::open_in_memory()?;
     migrations::run(&mut expected)?;
-    for name in ["settings", "numbering_series", "issued_numbers"] {
+    for name in ["settings", "numbering_series", "issued_numbers", "customers"] {
         let sql = |c: &Connection| -> Result<String, rusqlite::Error> {
             c.query_row(
                 "SELECT sql FROM sqlite_master WHERE type='table' AND name=?1",
@@ -603,6 +603,7 @@ fn validate_archive(source: &Path) -> Result<ValidatedBackup, AppError> {
     ] {
         connection.prepare(sql)?;
     }
+    super::customers::validate_database(&connection)?;
     normalized_logo(&connection, &data.join("assets"), None)?;
     drop(connection);
     let mut source_handle = archive.into_inner();

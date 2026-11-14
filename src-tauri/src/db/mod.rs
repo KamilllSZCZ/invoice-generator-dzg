@@ -1,4 +1,5 @@
 pub(crate) mod migrations;
+pub(crate) mod customers;
 
 use crate::errors::AppError;
 use rusqlite::Connection;
@@ -105,6 +106,7 @@ impl DatabaseState {
         let database_path = active_data_dir.join("app.sqlite");
         let mut connection = Connection::open(database_path)?;
         connection.busy_timeout(std::time::Duration::from_secs(5))?;
+        connection.pragma_update(None, "foreign_keys", true)?;
         migrations::run(&mut connection)?;
 
         Ok(Self {
@@ -161,6 +163,7 @@ impl DatabaseState {
     pub(crate) fn reopen(&self) -> Result<Connection, AppError> {
         let mut c = Connection::open(self.data_dir.join("app.sqlite"))?;
         c.busy_timeout(std::time::Duration::from_secs(5))?;
+        c.pragma_update(None, "foreign_keys", true)?;
         migrations::run(&mut c)?;
         Ok(c)
     }

@@ -1,0 +1,12 @@
+.confirmation-dialog { width: min(480px, calc(100vw - 40px)); max-height: 85vh; overflow: auto; margin: auto; padding: 26px; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 7px; font-family: "Segoe UI", sans-serif; }
+.confirmation-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.confirmation-dialog h2 { font-size: 20px; line-height: 1.4; margin: 0 0 16px; }
+.confirmation-copy { font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.confirmation-copy p { margin: 12px 0; }
+.confirmation-copy [role="alert"] { color: #ed9b90; }
+.confirmation-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.confirmation-actions button { min-height: 40px; padding: 9px 14px; border-radius: 5px; border: 1px solid var(--color-border); background: var(--color-surface-raised); color: var(--color-text); cursor: pointer; font: inherit; font-size: 13px; }
+.confirmation-actions button:disabled { opacity: .65; cursor: default; }
+.confirmation-actions .confirmation-primary { background: var(--color-orange); color: #17191c; border-color: var(--color-orange); font-weight: 650; }
+.confirmation-actions .confirmation-danger { background: #ab3024; color: #fff; border-color: #ab3024; }
+:root[data-theme="light"] .confirmation-copy [role="alert"] { color: #ab3024; }

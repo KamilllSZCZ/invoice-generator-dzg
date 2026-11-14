@@ -20,6 +20,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::customers::list_customers,
+            commands::customers::create_customer,
+            commands::customers::update_customer,
+            commands::customers::delete_customer,
             commands::backup::create_backup,
             commands::backup::inspect_backup,
             commands::backup::restore_backup,

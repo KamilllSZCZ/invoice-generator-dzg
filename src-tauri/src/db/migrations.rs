@@ -1,10 +1,11 @@
 use crate::errors::AppError;
 use rusqlite::Connection;
 
-pub(crate) const LATEST_VERSION: u32 = 2;
+pub(crate) const LATEST_VERSION: u32 = 3;
 const MIGRATIONS: &[(i64, &str)] = &[
     (1, include_str!("../../migrations/0001_settings.sql")),
     (2, include_str!("../../migrations/0002_numbering.sql")),
+    (3, include_str!("../../migrations/0003_customers.sql")),
 ];
 
 pub(crate) fn run(connection: &mut Connection) -> Result<(), AppError> {
@@ -39,7 +40,9 @@ mod tests {
     #[test]
     fn rejects_database_version_newer_than_supported_migrations() {
         let mut connection = rusqlite::Connection::open_in_memory().unwrap();
-        connection.pragma_update(None, "user_version", 3).unwrap();
+        connection
+            .pragma_update(None, "user_version", super::LATEST_VERSION + 1)
+            .unwrap();
 
         let error = super::run(&mut connection).unwrap_err();
 
@@ -47,7 +50,7 @@ mod tests {
     }
 
     #[test]
-    fn fresh_database_migrates_to_version_1() {
+    fn fresh_database_migrates_to_latest_version() {
         let temp_dir = tempfile::tempdir().unwrap();
         let state = DatabaseState::open(temp_dir.path().to_path_buf()).unwrap();
 
@@ -57,7 +60,7 @@ mod tests {
                     .query_row("PRAGMA user_version", [], |row| row.get(0))
                     .map_err(AppError::from)?;
                 assert_eq!(version, super::LATEST_VERSION as i64);
-                for table in ["settings", "numbering_series", "issued_numbers"] {
+                for table in ["settings", "numbering_series", "issued_numbers", "customers"] {
                     let exists: bool = connection
                         .query_row(
                             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",

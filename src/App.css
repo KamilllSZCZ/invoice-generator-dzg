@@ -19,6 +19,13 @@
   box-sizing: border-box;
 }
 
+:root[data-theme="light"] { color-scheme:light;--color-canvas:#f3f2f0;--color-sidebar:#eae8e5;--color-surface:#fff;--color-surface-raised:#eae9e7;--color-border:#cbc7c3;--color-text:#242424;--color-muted:#666; }
+:root[data-theme="light"] .sidebar,:root[data-theme="light"] .topbar,:root[data-theme="light"] .workspace-footer{border-color:var(--color-border)}
+:root[data-theme="light"] .brand-name,:root[data-theme="light"] .brand-name strong,:root[data-theme="light"] .nav-item,:root[data-theme="light"] .topbar__context,:root[data-theme="light"] .release-status,:root[data-theme="light"] .welcome-panel__copy,:root[data-theme="light"] .planned-panel p{color:var(--color-text)}
+:root[data-theme="light"] .nav-item:hover,:root[data-theme="light"] .nav-item--active{color:var(--color-text);background:var(--color-surface)}
+:root[data-theme="light"] .topbar{background:var(--color-canvas)}
+:root[data-density="compact"] .page-content{padding-top:28px;padding-bottom:32px}:root[data-density="compact"] .nav-item{min-height:36px}:root[data-density="compact"] .settings-body{padding:18px}:root[data-density="compact"] .settings-grid{gap:12px}:root[data-density="compact"] .settings-field input,:root[data-density="compact"] .settings-field select{min-height:34px;padding-top:6px;padding-bottom:6px}
+
 body {
   min-width: 320px;
   min-height: 100vh;

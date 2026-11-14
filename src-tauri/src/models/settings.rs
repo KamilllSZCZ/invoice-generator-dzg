@@ -21,6 +21,7 @@ pub struct SellerProfile {
     pub email: Option<String>,
     pub phone: Option<String>,
     pub bank_account: Option<String>,
+    pub website: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -36,6 +37,8 @@ pub struct DocumentDefaults {
     pub currency: Option<String>,
     pub payment_method: Option<String>,
     pub payment_term_days: Option<u32>,
+    pub issue_place: Option<String>,
+    pub notes: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -43,21 +46,45 @@ pub struct NumberingSeriesSettings {
     pub document_type: DocumentTypeKey,
     pub prefix: String,
     pub format: String,
-    pub reset_policy: Option<String>,
+    pub reset_policy: Option<NumberResetPolicy>,
     pub next_counter: u64,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NumberResetPolicy {
+    Yearly,
+    Monthly,
+    Never,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NumberPreview {
+    pub document_type: DocumentTypeKey,
+    pub formatted_number: String,
+    pub period_key: String,
+    pub counter: u64,
+}
+pub type IssuedNumber = NumberPreview;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct DocumentAppearanceSettings {
     pub template: Option<String>,
     pub accent_color: Option<String>,
     pub show_logo: Option<bool>,
+    pub footer: Option<String>,
+    pub show_address: Option<bool>,
+    pub show_email: Option<bool>,
+    pub show_phone: Option<bool>,
+    pub show_website: Option<bool>,
+    pub show_bank_account: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct AppPreferences {
     pub language: Option<String>,
     pub theme: Option<String>,
+    pub density: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

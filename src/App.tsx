@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect,useState } from "react";
+import { SettingsPage } from "./features/settings/SettingsPage";
+import { settingsApi } from "./features/settings/api";
+import type { AppPreferences } from "./features/settings/types";
 import "./App.css";
 
 type SectionId = "dashboard" | "invoices" | "customers" | "catalog" | "settings";
@@ -35,6 +38,11 @@ function NavIcon({ section }: { section: SectionId }) {
 
 function App() {
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
+  const [settingsDirty,setSettingsDirty]=useState(false);
+  const [preferences,setPreferences]=useState<AppPreferences>({language:null,theme:null,density:null});
+  useEffect(()=>{let active=true;settingsApi.getSettings().then(s=>{if(active)setPreferences(s.preferences);}).catch(()=>{/* The settings page reports database errors with a retry action. */});return()=>{active=false;};},[]);
+  useEffect(()=>{const media=window.matchMedia?.("(prefers-color-scheme: dark)");const apply=()=>{document.documentElement.dataset.theme=preferences.theme==="system"?(media?.matches?"dark":"light"):(preferences.theme??"dark");document.documentElement.dataset.density=preferences.density??"comfortable";};apply();media?.addEventListener("change",apply);return()=>media?.removeEventListener("change",apply);},[preferences]);
+  function navigate(section:SectionId){if(section===activeSection)return;if(activeSection==="settings"&&settingsDirty&&!window.confirm("Odrzucić niezapisane zmiany ustawień?"))return;setSettingsDirty(false);setActiveSection(section);}
   const currentSection = sections.find((section) => section.id === activeSection) ?? sections[0];
 
   return (
@@ -53,7 +61,7 @@ function App() {
               key={section.id}
               type="button"
               aria-current={section.id === activeSection ? "page" : undefined}
-              onClick={() => setActiveSection(section.id)}
+              onClick={() => navigate(section.id)}
             >
               <NavIcon section={section.id} />
               <span>{section.label}</span>
@@ -98,6 +106,8 @@ function App() {
               </div>
               <div className="welcome-panel__stamp" aria-hidden="true">DZG</div>
             </section>
+          ) : activeSection === "settings" ? (
+            <SettingsPage onPreferencesChanged={setPreferences} onDirtyChanged={setSettingsDirty}/>
           ) : (
             <section className="planned-panel" aria-live="polite">
               <span className="planned-panel__line" aria-hidden="true" />

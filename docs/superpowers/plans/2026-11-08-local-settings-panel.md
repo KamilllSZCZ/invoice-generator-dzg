@@ -85,12 +85,12 @@
 - `SellerProfile` common fields are optional; keep document-specific snapshot data versioned and separate from common company profile. `AppSettings` must not synthesize tax or registration values.
 - Initial document type key is the generic `invoice`, not `vat_invoice`; add no tax or registration defaults.
 
-- [ ] **Step 1: Write named migration/model tests** `fresh_database_migrates_to_version_1`, `reopen_does_not_rerun_migration`, `seller_profile_allows_unregistered_optional_fields`, and `document_snapshot_supports_versioned_type_extension`; assert `invoice` serializes as a generic document key and no tax fields are filled by defaults.
-- [ ] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml`** and confirm these tests fail before implementation.
-- [ ] **Step 3: Add `rusqlite` 0.40 with `bundled` and `backup`, direct `serde`/`serde_json` dependencies, and `tempfile` as a dev dependency; implement `AppError`, serde models, and `DatabaseState`**; open the DB at `app_data_dir/data/app.sqlite` and assets at `app_data_dir/data/assets/`, then run embedded numbered migrations transactionally using `PRAGMA user_version`.
-- [ ] **Step 4: Create `0001_settings.sql`** with a JSON settings key/value table, a `numbering_series` table keyed by `document_type` with `counter_period` and `next_counter`, and an `issued_numbers` table with `UNIQUE(document_type, formatted_number)`; store no presumed seller/tax values.
-- [ ] **Step 5: Run `cargo test --manifest-path src-tauri/Cargo.toml`** and confirm fresh initialization, repeat initialization, optional values, and schema version pass.
-- [ ] **Step 6: Commit** `git commit -m "feat: add local settings database foundation" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 1: Write named migration/model tests** `fresh_database_migrates_to_version_1`, `reopen_does_not_rerun_migration`, `seller_profile_allows_unregistered_optional_fields`, and `document_snapshot_supports_versioned_type_extension`; assert `invoice` serializes as a generic document key and no tax fields are filled by defaults.
+- [x] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml`** and confirm these tests fail before implementation.
+- [x] **Step 3: Add `rusqlite` 0.40 with `bundled` and `backup`, direct `serde`/`serde_json` dependencies, and `tempfile` as a dev dependency; implement `AppError`, serde models, and `DatabaseState`**; open the DB at `app_data_dir/data/app.sqlite` and assets at `app_data_dir/data/assets/`, then run embedded numbered migrations transactionally using `PRAGMA user_version`.
+- [x] **Step 4: Create `0001_settings.sql`** with a JSON settings key/value table, a `numbering_series` table keyed by `document_type` with `counter_period` and `next_counter`, and an `issued_numbers` table with `UNIQUE(document_type, formatted_number)`; store no presumed seller/tax values.
+- [x] **Step 5: Run `cargo test --manifest-path src-tauri/Cargo.toml`** and confirm fresh initialization, repeat initialization, optional values, and schema version pass.
+- [x] **Step 6: Commit** `git commit -m "feat: add local settings database foundation" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
 
 ## Task 2: Implement settings persistence, validation, and typed Tauri commands
 
@@ -107,13 +107,13 @@
 - Validate uploaded logos by decoding PNG/JPEG (not extension alone), with a 10 MiB file limit and a 25-megapixel decoded-pixel limit; store under a generated asset name and return data URL for preview.
 - Every save validates and commits the complete section in one transaction. Return field-addressable validation errors; do not return success for partial writes. A seller-settings save touches only settings data, never document snapshot rows.
 
-- [ ] **Step 1: Write named service tests** `settings_round_trip_after_reopen`, `empty_unregistered_seller_is_valid`, `invalid_supplied_email_returns_field_error`, `invalid_theme_returns_field_error`, `rejects_logo_with_mismatched_extension_or_oversize_pixels`, and `save_company_settings_does_not_change_issued_snapshot`; in the last test insert an immutable fixture snapshot row and assert its bytes are unchanged after saving seller settings.
-- [ ] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml services::settings::tests`** and confirm the new cases fail before service/command implementation.
-- [ ] **Step 3: Implement settings read/write mapping** in `services/settings.rs`; preserve forward-compatible optional/versioned payloads and only validate values explicitly supplied by the user.
-- [ ] **Step 4: Add bounded logo handling** using PNG/JPEG decoder and Base64 data URLs; copy validated files to generated names in `data/assets/`, atomically update the company profile reference, and remove only unreferenced managed logo files.
-- [ ] **Step 5: Implement typed settings/logo commands and `get_app_version`** and register them in `lib.rs`; initialize `DatabaseState` from Tauri's app-data directory during setup and fail startup with a clear error if migrations fail.
-- [ ] **Step 6: Run `cargo test --manifest-path src-tauri/Cargo.toml` and `cargo check --manifest-path src-tauri/Cargo.toml`**; verify failed validation rolls back the section and successful saves persist after reopening the DB.
-- [ ] **Step 7: Commit** `git commit -m "feat: add typed settings commands" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 1: Write named service tests** `settings_round_trip_after_reopen`, `empty_unregistered_seller_is_valid`, `invalid_supplied_email_returns_field_error`, `invalid_theme_returns_field_error`, `rejects_logo_with_mismatched_extension_or_oversize_pixels`, and `save_company_settings_does_not_change_issued_snapshot`; in the last test insert an immutable fixture snapshot row and assert its bytes are unchanged after saving seller settings.
+- [x] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml services::settings::tests`** and confirm the new cases fail before service/command implementation.
+- [x] **Step 3: Implement settings read/write mapping** in `services/settings.rs`; preserve forward-compatible optional/versioned payloads and only validate values explicitly supplied by the user.
+- [x] **Step 4: Add bounded logo handling** using PNG/JPEG decoder and Base64 data URLs; copy validated files to generated names in `data/assets/`, atomically update the company profile reference, and remove only unreferenced managed logo files.
+- [x] **Step 5: Implement typed settings/logo commands and `get_app_version`** and register them in `lib.rs`; initialize `DatabaseState` from Tauri's app-data directory during setup and fail startup with a clear error if migrations fail.
+- [x] **Step 6: Run `cargo test --manifest-path src-tauri/Cargo.toml` and `cargo check --manifest-path src-tauri/Cargo.toml`**; verify failed validation rolls back the section and successful saves persist after reopening the DB.
+- [x] **Step 7: Commit** `git commit -m "feat: add typed settings commands" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
 
 ## Task 3: Implement per-document numbering and non-reserving preview
 
@@ -130,14 +130,14 @@
 - `allocate_number_in_transaction(tx: &Transaction, document_type: &DocumentTypeKey, issue_year: u16, issue_month: u8) -> Result<IssuedNumber, AppError>` advances only inside the transaction that also inserts the document/issued-number row; require year `1..=9999` and month `1..=12`. No standalone command reserves a number.
 - Yearly reset requires `{year}`; monthly reset requires `{year}` and `{month}`. There is no reset when policy is `Never`.
 
-- [ ] **Step 1: Write named numbering tests** `renders_all_four_tokens`, `rejects_unknown_or_unclosed_token`, `yearly_reset_requires_year_token`, `monthly_reset_requires_year_and_month`, `series_are_independent_by_document_type`, `preview_does_not_change_counter`, `format_change_skips_historical_collision`, `concurrent_allocations_commit_unique_numbers`, and `transaction_rollback_keeps_number_unissued`.
-- [ ] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml services::numbering::tests`** and confirm the new cases fail before the numbering service exists.
-- [ ] **Step 3: Implement template validation and rendering** with the exact four-token grammar; reject unknown tokens, reset formats lacking period identity, zero/negative next counters, and an empty format.
-- [ ] **Step 4: Implement read-only preview** using a consistent read transaction; do not update `numbering_series` or `issued_numbers`.
-- [ ] **Step 5: Implement transaction-scoped allocation**: compute candidate from series/reset period, check the global per-type issued-number constraint, advance past any historic collision, insert the number and update the counter in the caller's transaction. A failed transaction leaves both unchanged.
-- [ ] **Step 6: Add Tauri commands** `get_numbering_settings()`, `save_numbering_settings(input)`, and `preview_next_number(document_type)`; only allow the registered generic `invoice` type until other types are implemented.
-- [ ] **Step 7: Run `cargo test --manifest-path src-tauri/Cargo.toml services::numbering::tests` and the full `cargo test --manifest-path src-tauri/Cargo.toml`**; verify two concurrent allocation transactions cannot commit the same number.
-- [ ] **Step 8: Commit** `git commit -m "feat: add safe per-document numbering" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 1: Write named numbering tests** `renders_all_four_tokens`, `rejects_unknown_or_unclosed_token`, `yearly_reset_requires_year_token`, `monthly_reset_requires_year_and_month`, `series_are_independent_by_document_type`, `preview_does_not_change_counter`, `format_change_skips_historical_collision`, `concurrent_allocations_commit_unique_numbers`, and `transaction_rollback_keeps_number_unissued`.
+- [x] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml services::numbering::tests`** and confirm the new cases fail before the numbering service exists.
+- [x] **Step 3: Implement template validation and rendering** with the exact four-token grammar; reject unknown tokens, reset formats lacking period identity, zero/negative next counters, and an empty format.
+- [x] **Step 4: Implement read-only preview** using a consistent read transaction; do not update `numbering_series` or `issued_numbers`.
+- [x] **Step 5: Implement transaction-scoped allocation**: compute candidate from series/reset period, check the global per-type issued-number constraint, advance past any historic collision, insert the number and update the counter in the caller's transaction. A failed transaction leaves both unchanged.
+- [x] **Step 6: Add Tauri commands** `get_numbering_settings()`, `save_numbering_settings(input)`, and `preview_next_number(document_type)`; only allow the registered generic `invoice` type until other types are implemented.
+- [x] **Step 7: Run `cargo test --manifest-path src-tauri/Cargo.toml services::numbering::tests` and the full `cargo test --manifest-path src-tauri/Cargo.toml`**; verify two concurrent allocation transactions cannot commit the same number.
+- [x] **Step 8: Commit** `git commit -m "feat: add safe per-document numbering" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
 
 ## Task 4: Implement complete backup, validation, and recoverable restore
 
@@ -158,14 +158,14 @@
 - `get_data_location() -> Result<DataLocation, AppError>` returns the managed DB/data paths; the frontend opens only the returned app-managed data directory through the Tauri opener plugin.
 - Archive extraction uses an isolated temporary directory, rejects path traversal, symlink/special entries, duplicates, unknown required files, compressed archives over 512 MiB, expanded archives over 1 GiB, entries over 512 MiB, more than 1024 entries, and expansion ratios over 100:1.
 
-- [ ] **Step 1: Write named backup tests** `round_trip_contains_database_and_logo`, `repeated_backups_get_unique_names_without_overwrite`, `rejects_truncated_archive`, `rejects_duplicate_entries`, `rejects_path_traversal`, `rejects_bad_checksum`, `rejects_newer_schema`, `rejects_each_archive_limit_boundary`, `rejects_corrupt_sqlite_before_confirmation`, `restore_requires_confirmation`, and `failed_restore_restores_database_and_assets`.
-- [ ] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml services::backup::tests`** and verify invalid-input and failure-preservation cases fail before implementation.
-- [ ] **Step 3: Add ZIP and SHA-256 dependencies** at compatible stable versions and implement staged SQLite online backup plus managed asset packaging; manifest is versioned and lists each expected file and checksum.
-- [ ] **Step 4: Implement read-only archive inspection** with strict entry allow-list, path/size bounds, manifest and checksum validation, and `PRAGMA integrity_check` on the staged DB; no live paths are touched.
-- [ ] **Step 5: Implement restore as a guarded state transition**: require confirmation, revalidate, create and verify rollback backup, stage DB/assets, close the live connection under exclusive state lock, swap the complete data directory, reopen/migrate, and restore the old set on any failure.
-- [ ] **Step 6: Add destination/location commands** and keep automatic pre-restore recovery archives in `app_data_dir/recovery/`, outside the data set being replaced.
-- [ ] **Step 7: Run `cargo test --manifest-path src-tauri/Cargo.toml services::backup::tests` and the full `cargo test --manifest-path src-tauri/Cargo.toml`**; assert byte-for-byte preservation of live DB and assets for every rejected archive and injected failure.
-- [ ] **Step 8: Commit** `git commit -m "feat: add validated local backup and restore" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 1: Write named backup tests** `round_trip_contains_database_and_logo`, `repeated_backups_get_unique_names_without_overwrite`, `rejects_truncated_archive`, `rejects_duplicate_entries`, `rejects_path_traversal`, `rejects_bad_checksum`, `rejects_newer_schema`, `rejects_each_archive_limit_boundary`, `rejects_corrupt_sqlite_before_confirmation`, `restore_requires_confirmation`, and `failed_restore_restores_database_and_assets`.
+- [x] **Step 2: Run `cargo test --manifest-path src-tauri/Cargo.toml services::backup::tests`** and verify invalid-input and failure-preservation cases fail before implementation.
+- [x] **Step 3: Add ZIP and SHA-256 dependencies** at compatible stable versions and implement staged SQLite online backup plus managed asset packaging; manifest is versioned and lists each expected file and checksum.
+- [x] **Step 4: Implement read-only archive inspection** with strict entry allow-list, path/size bounds, manifest and checksum validation, and `PRAGMA integrity_check` on the staged DB; no live paths are touched.
+- [x] **Step 5: Implement restore as a guarded state transition**: require confirmation, revalidate, create and verify rollback backup, stage DB/assets, close the live connection under exclusive state lock, swap the complete data directory, reopen/migrate, and restore the old set on any failure.
+- [x] **Step 6: Add destination/location commands** and keep automatic pre-restore recovery archives in `app_data_dir/recovery/`, outside the data set being replaced.
+- [x] **Step 7: Run `cargo test --manifest-path src-tauri/Cargo.toml services::backup::tests` and the full `cargo test --manifest-path src-tauri/Cargo.toml`**; assert byte-for-byte preservation of live DB and assets for every rejected archive and injected failure.
+- [x] **Step 8: Commit** `git commit -m "feat: add validated local backup and restore" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
 
 ## Task 5: Build typed frontend client and company/default/numbering sections
 
@@ -189,16 +189,16 @@
 - `SettingsPage` loads data once, owns `activeSettingsSection`, and passes typed values plus `onSave`/`onChange` callbacks to section components.
 - Use Vitest, jsdom, React Testing Library, and `@testing-library/user-event`; expose `npm test` as `vitest run` and `npm run test:watch` as `vitest`.
 
-- [ ] **Step 1: Add Vitest/jsdom/RTL setup and failing component tests** for loading, saving, backend validation errors, optional seller fields, invoice numbering form, and preview not changing saved values.
-- [ ] **Step 2: Run `npm test -- src/features/settings/`** and confirm tests fail because the feature components/API are not implemented.
-- [ ] **Step 3: Add/register Tauri 2 dialog plugin** and grant only `open`/`save` file-dialog permissions; update the frontend and Rust lockfiles without unrelated upgrades.
-- [ ] **Step 4: Define TypeScript types** that match Rust serde structures, including optional company fields, generic `invoice` document type, reset policy and backup summaries.
-- [ ] **Step 5: Implement `api.ts`** as the only frontend invoke boundary; map backend field errors into typed validation results and do not expose direct SQL.
-- [ ] **Step 6: Implement company/default forms** with all in-scope fields, native PNG/JPEG selection, backend save, dirty/saved/error states, and no registration/tax configuration UI in this iteration; keep those future model extensions optional and unset.
-- [ ] **Step 7: Implement numbering form** for the registered generic invoice type, four format tokens, reset policy, year/month compatibility validation, backend preview labelled “podgląd — numer może się zmienić”, and explicit save.
-- [ ] **Step 8: Implement section navigation and responsive form shell** in `SettingsPage`; confirm keyboard labels, error announcements and unsaved-change state.
-- [ ] **Step 9: Run `npm test` and `npm run build`**; verify user input persists through mocked API and all optional seller fields can remain empty.
-- [ ] **Step 10: Commit** `git commit -m "feat: add company and numbering settings UI" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 1: Add Vitest/jsdom/RTL setup and failing component tests** for loading, saving, backend validation errors, optional seller fields, invoice numbering form, and preview not changing saved values.
+- [x] **Step 2: Run `npm test -- src/features/settings/`** and confirm tests fail because the feature components/API are not implemented.
+- [x] **Step 3: Add/register Tauri 2 dialog plugin** and grant only `open`/`save` file-dialog permissions; update the frontend and Rust lockfiles without unrelated upgrades.
+- [x] **Step 4: Define TypeScript types** that match Rust serde structures, including optional company fields, generic `invoice` document type, reset policy and backup summaries.
+- [x] **Step 5: Implement `api.ts`** as the only frontend invoke boundary; map backend field errors into typed validation results and do not expose direct SQL.
+- [x] **Step 6: Implement company/default forms** with all in-scope fields, native PNG/JPEG selection, backend save, dirty/saved/error states, and no registration/tax configuration UI in this iteration; keep those future model extensions optional and unset.
+- [x] **Step 7: Implement numbering form** for the registered generic invoice type, four format tokens, reset policy, year/month compatibility validation, backend preview labelled “podgląd — numer może się zmienić”, and explicit save.
+- [x] **Step 8: Implement section navigation and responsive form shell** in `SettingsPage`; confirm keyboard labels, error announcements and unsaved-change state.
+- [x] **Step 9: Run `npm test` and `npm run build`**; verify user input persists through mocked API and all optional seller fields can remain empty.
+- [x] **Step 10: Commit** `git commit -m "feat: add company and numbering settings UI" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
 
 ## Task 6: Add appearance and application preferences
 
@@ -216,12 +216,12 @@
 - `AppPreferences` contains `theme: system | light | dark` and `density: comfortable | compact`; theme and density apply to the current app shell. App version comes from Tauri package metadata and is displayed read-only.
 - Appearance variants have stable IDs and only appear when implemented with a working local sample preview.
 
-- [ ] **Step 1: Write tests** for saved footer/visibility/variant, live preview updates, theme selection including system mode, persisted preferences, and read-only version display.
-- [ ] **Step 2: Run `npm test -- src/features/settings/AppearanceSection.test.tsx src/features/settings/AppPreferencesSection.test.tsx`** and verify they fail before components are present.
-- [ ] **Step 3: Implement appearance section** with footer, individual visibility toggles, built-in variants and a clearly watermarked sample preview; keep sample data separate from seller settings.
-- [ ] **Step 4: Implement preferences section**; apply selected theme to the app root and persist it through the typed backend; show actual version metadata.
-- [ ] **Step 5: Run component tests and `npm run build`**; verify no theme or preview state is reported saved before backend success.
-- [ ] **Step 6: Commit** `git commit -m "feat: add document appearance and app preferences" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 1: Write tests** for saved footer/visibility/variant, live preview updates, theme selection including system mode, persisted preferences, and read-only version display.
+- [x] **Step 2: Run `npm test -- src/features/settings/AppearanceSection.test.tsx src/features/settings/AppPreferencesSection.test.tsx`** and verify they fail before components are present.
+- [x] **Step 3: Implement appearance section** with footer, individual visibility toggles, built-in variants and a clearly watermarked sample preview; keep sample data separate from seller settings.
+- [x] **Step 4: Implement preferences section**; apply selected theme to the app root and persist it through the typed backend; show actual version metadata.
+- [x] **Step 5: Run component tests and `npm run build`**; verify no theme or preview state is reported saved before backend success.
+- [x] **Step 6: Commit** `git commit -m "feat: add document appearance and app preferences" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
 
 ## Task 7: Add backup UI and connect the panel to the app
 
@@ -242,13 +242,13 @@
 - `timestampedBackupFileName(now: Date): string` returns `dualzone-garage-backup-YYYYMMDD-HHMMSSZ.zip` using UTC components.
 - Dialog cancellation is a no-op. Restore requires a displayed summary and a second explicit “replace all local data” confirmation, then invokes `restoreBackup(source, true)`; backend revalidation remains authoritative.
 
-- [ ] **Step 1: Write tests** that `timestampedBackupFileName` formats UTC date/time; UI tests cover multiple destinations, dialog cancellation, invalid archive with no confirmation, explicit restore confirmation, display of the actual collision-suffixed destination returned by backend, and failure/success messaging.
-- [ ] **Step 2: Run `npm test -- src/features/settings/BackupSection.test.tsx src/features/settings/backupFileName.test.ts`** and verify they fail before the backup section exists.
-- [ ] **Step 3: Add/register `@tauri-apps/plugin-opener` and its Rust plugin** at a compatible Tauri 2 version; grant only the permission needed to open the backend-returned app-data folder path.
-- [ ] **Step 4: Implement backup section** with native save/open dialogs, a fresh timestamped filename for each backup, data path display, open-folder action, validation summary, and explicit restore confirmation.
-- [ ] **Step 5: Replace only the settings placeholder in `App.tsx`** with `SettingsPage`; leave dashboard and other planned module placeholders unchanged.
-- [ ] **Step 6: Run Vitest and `npm run build`**; verify cancellation or validation errors never invoke restore and no error is shown as success.
-- [ ] **Step 7: Commit** `git commit -m "feat: connect backup tools to settings panel" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 1: Write tests** that `timestampedBackupFileName` formats UTC date/time; UI tests cover multiple destinations, dialog cancellation, invalid archive with no confirmation, explicit restore confirmation, display of the actual collision-suffixed destination returned by backend, and failure/success messaging.
+- [x] **Step 2: Run `npm test -- src/features/settings/BackupSection.test.tsx src/features/settings/backupFileName.test.ts`** and verify they fail before the backup section exists.
+- [x] **Step 3: Add/register `@tauri-apps/plugin-opener` and its Rust plugin** at a compatible Tauri 2 version; grant only the permission needed to open the backend-returned app-data folder path.
+- [x] **Step 4: Implement backup section** with native save/open dialogs, a fresh timestamped filename for each backup, data path display, open-folder action, validation summary, and explicit restore confirmation.
+- [x] **Step 5: Replace only the settings placeholder in `App.tsx`** with `SettingsPage`; leave dashboard and other planned module placeholders unchanged.
+- [x] **Step 6: Run Vitest and `npm run build`**; verify cancellation or validation errors never invoke restore and no error is shown as success.
+- [x] **Step 7: Commit** `git commit -m "feat: connect backup tools to settings panel" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
 
 ## Task 8: End-to-end verification and documentation
 
@@ -257,10 +257,13 @@
 - Modify: test files only where integration gaps are found
 - Test: Rust and frontend suites; manual Tauri smoke scenario
 
-- [ ] **Step 1: Run `npm test`** and confirm all frontend unit/component tests pass.
-- [ ] **Step 2: Run `npm run build` and `cargo test --manifest-path src-tauri/Cargo.toml`**; fix any regression and rerun each full command.
+- [x] **Step 1: Run `npm test`** and confirm all frontend unit/component tests pass.
+- [x] **Step 2: Run `npm run build` and `cargo test --manifest-path src-tauri/Cargo.toml`**; fix any regression and rerun each full command.
 - [ ] **Step 3: Run `cargo check --manifest-path src-tauri/Cargo.toml`** and `npm run tauri dev`; manually exercise every settings section, restart the app, and verify values persist.
 - [ ] **Step 4: Perform backup/restore smoke test** using a temporary test profile: create two backups to different destinations, alter settings/logo, inspect and restore one, then verify restored data and the automatic pre-restore backup; test a corrupted copy and verify active data remains unchanged.
-- [ ] **Step 5: Update README** with data directory location behavior, manual backup/export/import flow, restore replacement warning, and current scope/limitations.
-- [ ] **Step 6: Review the complete diff, run `git diff --check`, and commit** `git commit -m "test: verify settings persistence and recovery" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
-- [ ] **Step 7: Push the feature branch** after each accepted logical milestone, following the repository workflow; do not merge or rewrite history without explicit authorization.
+- [x] **Step 5: Update README** with data directory location behavior, manual backup/export/import flow, restore replacement warning, and current scope/limitations.
+- [x] **Step 6: Review the complete diff, run `git diff --check`, and commit** `git commit -m "test: verify settings persistence and recovery" -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"`.
+- [x] **Step 7: Push the feature branch** after each accepted logical milestone, following the repository workflow; do not merge or rewrite history without explicit authorization.
+
+
+Implementation status (2026-11-14): Tasks 1–2 reused from existing commits; Tasks 3–7 implemented and verified. Task 8 automated suites, frontend/native debug build, cargo check, documentation, review and feature push are complete. The native window starts and settings load through IPC; full manual persistence/restart and native backup-dialog smoke remain unverified because desktop automation failed. See README for exact checks and limitations.

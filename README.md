@@ -65,3 +65,14 @@ Format kopii v1 używa ZIP32, bez szyfrowania, ZIP64, archiwów wieloczęściowy
 Panel nie wystawia faktur i nie generuje PDF. Pozostałe moduły, KSeF, synchronizacja chmurowa, logowanie i księgowość są poza zakresem. Numeracja udostępnia warstwę transakcyjną dla przyszłego wystawiania. Podgląd używa lokalnej daty systemowej, a nazwy i manifesty kopii czasu UTC.
 
 Rust sprawdza migracje, zapis po ponownym otwarciu, opcjonalny profil, niezmienność migawek, numerację i współbieżność, pełne kopie, walidację, wycofanie i odzyskiwanie. Vitest/RTL sprawdza formularze, błędy, szkice, preferencje i jawne potwierdzanie kopii.
+
+## Wynik weryfikacji panelu (2026-11-14)
+
+- `npm test`: 17/17 testów, siedem plików.
+- `npm run build`: TypeScript i produkcyjny frontend Vite bez błędów.
+- `cargo test --manifest-path src-tauri/Cargo.toml --offline`: 46/46 testów Rust.
+- `cargo check --manifest-path src-tauri/Cargo.toml --offline`: bez błędów. Środowisko nie obsługuje hardlinków cache; wyłączenie kompilacji przyrostowej usuwa ostrzeżenie bez zmiany kodu.
+- `npm run tauri build -- --debug --no-bundle --config <konfiguracja-testowa>`: natywny build Windows bez instalatora. Profil ma osobny identyfikator, więc nie używa właściwych danych aplikacji.
+- Natywne okno uruchomiło się, odczytało ustawienia przez IPC i pozwoliło edytować testowy profil. Pełny ręczny scenariusz zapisu po restarcie oraz eksportu/przywracania przez systemowe dialogi pozostaje do wykonania: sterowanie oknem przerywało operacje błędami geometrii i aktywnego procesu. Odpowiadające scenariusze usług i formularzy przechodzą testy automatyczne.
+
+Instalator Windows i wydanie produkcyjne nie były testowane w tym etapie.

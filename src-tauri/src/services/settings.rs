@@ -16,6 +16,27 @@ const MAX_LOGO_PIXELS: u64 = 25_000_000;
 const COMPANY_LOGO_KEY: &str = "company_logo_path";
 const IMAGE_DECODE_LIMIT: u64 = MAX_LOGO_PIXELS * 4;
 
+pub(crate) fn validate_database(c: &rusqlite::Connection) -> Result<(), AppError> {
+    let company: SellerProfile = read_json(c, "company")?.unwrap_or_default();
+    validate_company(&company)?;
+    let defaults: DocumentDefaults = read_json(c, "document_defaults")?.unwrap_or_default();
+    validate_document_defaults(&defaults)?;
+    let appearance: DocumentAppearanceSettings = read_json(c, "appearance")?.unwrap_or_default();
+    validate_appearance(&appearance)?;
+    let preferences: AppPreferences = read_json(c, "preferences")?.unwrap_or_default();
+    validate_preferences(&preferences)?;
+    let mut statement = c.prepare("SELECT document_type FROM numbering_series")?;
+    let keys = statement
+        .query_map([], |r| r.get::<_, String>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+    for key in keys {
+        let (series, _) =
+            super::numbering::read_series(c, &crate::models::settings::DocumentTypeKey::new(key))?;
+        super::numbering::validate_series(&series)?;
+    }
+    Ok(())
+}
+
 pub fn get_settings(state: &DatabaseState) -> Result<AppSettings, AppError> {
     state.with_connection(|connection| {
         let company = read_json(connection, "company")?.unwrap_or_default();
@@ -114,9 +135,12 @@ pub fn save_preferences(
 }
 
 pub fn set_company_logo(state: &DatabaseState, source: PathBuf) -> Result<SellerProfile, AppError> {
-    state.with_assets(||set_company_logo_locked(state,source))
+    state.with_assets(|| set_company_logo_locked(state, source))
 }
-fn set_company_logo_locked(state: &DatabaseState, source: PathBuf) -> Result<SellerProfile, AppError> {
+fn set_company_logo_locked(
+    state: &DatabaseState,
+    source: PathBuf,
+) -> Result<SellerProfile, AppError> {
     let company = get_company_profile(state)?;
     let source_name = source
         .file_name()
@@ -168,7 +192,7 @@ fn set_company_logo_locked(state: &DatabaseState, source: PathBuf) -> Result<Sel
 }
 
 pub fn remove_company_logo(state: &DatabaseState) -> Result<SellerProfile, AppError> {
-    state.with_assets(||remove_company_logo_locked(state))
+    state.with_assets(|| remove_company_logo_locked(state))
 }
 fn remove_company_logo_locked(state: &DatabaseState) -> Result<SellerProfile, AppError> {
     let company = get_company_profile(state)?;
@@ -189,13 +213,19 @@ fn remove_company_logo_locked(state: &DatabaseState) -> Result<SellerProfile, Ap
         transaction.commit().map_err(AppError::from)?;
         Ok(old_path)
     })?;
-    let old_path=old_path.map(|p|if p.is_absolute(){p}else{state.assets_dir().join(p)});
+    let old_path = old_path.map(|p| {
+        if p.is_absolute() {
+            p
+        } else {
+            state.assets_dir().join(p)
+        }
+    });
     remove_unreferenced_managed_logo(state, old_path.as_deref());
     Ok(company)
 }
 
 pub fn get_company_logo_data_url(state: &DatabaseState) -> Result<Option<String>, AppError> {
-    state.with_assets(||get_company_logo_data_url_locked(state))
+    state.with_assets(|| get_company_logo_data_url_locked(state))
 }
 fn get_company_logo_data_url_locked(state: &DatabaseState) -> Result<Option<String>, AppError> {
     let path = get_logo_reference(state)?;
@@ -235,9 +265,20 @@ fn get_company_profile(state: &DatabaseState) -> Result<SellerProfile, AppError>
 }
 
 fn validate_company(company: &SellerProfile) -> Result<(), AppError> {
-    if let Some(url)=&company.website {
-        let host=url.strip_prefix("https://").or_else(||url.strip_prefix("http://")).unwrap_or_default().split('/').next().unwrap_or_default();
-        if host.is_empty() || url.chars().any(char::is_whitespace) {return Err(validation_error("website","Podaj adres z http:// lub https://."));}
+    if let Some(url) = &company.website {
+        let host = url
+            .strip_prefix("https://")
+            .or_else(|| url.strip_prefix("http://"))
+            .unwrap_or_default()
+            .split('/')
+            .next()
+            .unwrap_or_default();
+        if host.is_empty() || url.chars().any(char::is_whitespace) {
+            return Err(validation_error(
+                "website",
+                "Podaj adres z http:// lub https://.",
+            ));
+        }
     }
     if let Some(email) = &company.email {
         let trimmed = email.trim();
@@ -256,18 +297,56 @@ fn validate_company(company: &SellerProfile) -> Result<(), AppError> {
     Ok(())
 }
 
-fn validate_document_defaults(input:&DocumentDefaults)->Result<(),AppError> {
-    if input.document_type.as_str()!="invoice" {return Err(validation_error("document_type","Nieobsługiwany typ dokumentu."));}
-    if input.currency.as_ref().is_some_and(|c|c.len()!=3||!c.bytes().all(|b|b.is_ascii_uppercase())) {return Err(validation_error("currency","Podaj trzyliterowy kod waluty, np. PLN."));}
-    if input.payment_term_days.is_some_and(|d|d>3650) {return Err(validation_error("payment_term_days","Termin płatności: od 0 do 3650 dni."));}Ok(())
+fn validate_document_defaults(input: &DocumentDefaults) -> Result<(), AppError> {
+    if input.document_type.as_str() != "invoice" {
+        return Err(validation_error(
+            "document_type",
+            "Nieobsługiwany typ dokumentu.",
+        ));
+    }
+    if input
+        .currency
+        .as_ref()
+        .is_some_and(|c| c.len() != 3 || !c.bytes().all(|b| b.is_ascii_uppercase()))
+    {
+        return Err(validation_error(
+            "currency",
+            "Podaj trzyliterowy kod waluty, np. PLN.",
+        ));
+    }
+    if input.payment_term_days.is_some_and(|d| d > 3650) {
+        return Err(validation_error(
+            "payment_term_days",
+            "Termin płatności: od 0 do 3650 dni.",
+        ));
+    }
+    Ok(())
 }
 fn validate_appearance(appearance: &DocumentAppearanceSettings) -> Result<(), AppError> {
-    if appearance.template.as_ref().is_some_and(|s|!["classic","modern"].contains(&s.as_str())) {return Err(validation_error("template","Nieobsługiwany wariant dokumentu."));}
+    if appearance
+        .template
+        .as_ref()
+        .is_some_and(|s| !["classic", "modern"].contains(&s.as_str()))
+    {
+        return Err(validation_error(
+            "template",
+            "Nieobsługiwany wariant dokumentu.",
+        ));
+    }
     Ok(())
 }
 
 fn validate_preferences(preferences: &AppPreferences) -> Result<(), AppError> {
-    if preferences.density.as_ref().is_some_and(|s|!["comfortable","compact"].contains(&s.as_str())) {return Err(validation_error("density","Wybierz gęstość komfortową lub kompaktową."));}
+    if preferences
+        .density
+        .as_ref()
+        .is_some_and(|s| !["comfortable", "compact"].contains(&s.as_str()))
+    {
+        return Err(validation_error(
+            "density",
+            "Wybierz gęstość komfortową lub kompaktową.",
+        ));
+    }
     if let Some(theme) = &preferences.theme {
         if !["light", "dark", "system"].contains(&theme.as_str()) {
             return Err(validation_error(
@@ -369,7 +448,7 @@ fn merge_json_objects(
     }
 }
 
-fn read_limited(path: &Path) -> Result<Vec<u8>, AppError> {
+pub(crate) fn read_limited(path: &Path) -> Result<Vec<u8>, AppError> {
     let file = fs::File::open(path)?;
     let size = file.metadata()?.len();
     if size > MAX_LOGO_BYTES {
@@ -389,7 +468,7 @@ fn read_limited(path: &Path) -> Result<Vec<u8>, AppError> {
     Ok(bytes)
 }
 
-fn decode_logo(bytes: &[u8]) -> Result<(ImageFormat, (u32, u32)), AppError> {
+pub(crate) fn decode_logo(bytes: &[u8]) -> Result<(ImageFormat, (u32, u32)), AppError> {
     let reader = ImageReader::new(Cursor::new(bytes))
         .with_guessed_format()
         .map_err(|_| validation_error("logo", "Logo must be a valid PNG or JPEG image"))?;
@@ -446,7 +525,15 @@ fn get_logo_reference(state: &DatabaseState) -> Result<Option<PathBuf>, AppError
             )
             .optional()
             .map_err(AppError::from)?;
-        Ok(value.and_then(|json| serde_json::from_str::<PathBuf>(&json).ok()).map(|p|if p.is_absolute(){p}else{state.assets_dir().join(p)}))
+        Ok(value
+            .and_then(|json| serde_json::from_str::<PathBuf>(&json).ok())
+            .map(|p| {
+                if p.is_absolute() {
+                    p
+                } else {
+                    state.assets_dir().join(p)
+                }
+            }))
     })
 }
 
@@ -493,14 +580,29 @@ mod tests {
     use crate::models::settings::{AppPreferences, AppSettings, SellerProfile};
     use std::fs;
 
-    #[test] fn document_defaults_and_preferences_are_validated_atomically() {
-        let (_d,s)=database();
-        let bad=crate::models::settings::DocumentDefaults{currency:Some("invalid".into()),..Default::default()};
-        assert!(super::save_document_defaults(&s,bad).is_err());
-        let bad=AppPreferences{density:Some("unknown".into()),..Default::default()};assert!(super::save_preferences(&s,bad).is_err());
-        let bad=crate::models::settings::DocumentAppearanceSettings{template:Some("not-implemented".into()),..Default::default()};assert!(super::save_appearance_settings(&s,bad).is_err());
-        let mut good=crate::models::settings::DocumentDefaults::default();good.issue_place=Some("Łańcut".into());good.notes=Some("Dziękujemy".into());
-        super::save_document_defaults(&s,good.clone()).unwrap();assert_eq!(super::get_settings(&s).unwrap().document_defaults,good);
+    #[test]
+    fn document_defaults_and_preferences_are_validated_atomically() {
+        let (_d, s) = database();
+        let bad = crate::models::settings::DocumentDefaults {
+            currency: Some("invalid".into()),
+            ..Default::default()
+        };
+        assert!(super::save_document_defaults(&s, bad).is_err());
+        let bad = AppPreferences {
+            density: Some("unknown".into()),
+            ..Default::default()
+        };
+        assert!(super::save_preferences(&s, bad).is_err());
+        let bad = crate::models::settings::DocumentAppearanceSettings {
+            template: Some("not-implemented".into()),
+            ..Default::default()
+        };
+        assert!(super::save_appearance_settings(&s, bad).is_err());
+        let mut good = crate::models::settings::DocumentDefaults::default();
+        good.issue_place = Some("Łańcut".into());
+        good.notes = Some("Dziękujemy".into());
+        super::save_document_defaults(&s, good.clone()).unwrap();
+        assert_eq!(super::get_settings(&s).unwrap().document_defaults, good);
     }
 
     fn database() -> (tempfile::TempDir, DatabaseState) {

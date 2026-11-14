@@ -7,7 +7,7 @@ export function initialSettings():AppSettings {return {
   appearance:{template:null,accent_color:null,show_logo:null,footer:null,show_address:null,show_email:null,show_phone:null,show_website:null,show_bank_account:null},
   preferences:{language:null,theme:null,density:null},
 };}
-export const backup:BackupSummary={path:"C:/kopie/kopia-01.zip",format_version:1,schema_version:2,app_version:"0.1.0",created_at_utc:"2026-11-13T18:00:00Z",file_count:2,size_bytes:40960};
+export const backup:BackupSummary={path:"C:/kopie/kopia-01.zip",format_version:1,schema_version:2,app_version:"0.1.0",created_at_utc:"2026-11-13T18:00:00Z",file_count:2,size_bytes:40960,fingerprint:"a".repeat(64)};
 export function fakeApi():SettingsApi&{saved:()=>AppSettings} {
   let data=initialSettings();return {
     saved:()=>structuredClone(data),getSettings:async()=>structuredClone(data),getAppVersion:async()=>"0.1.0",getCompanyLogoDataUrl:async()=>null,

@@ -12,7 +12,7 @@ export function BackupSection({api,onRestored,hasUnsavedChanges=false}:{api:Sett
   async function create(){setBusy(true);setError("");setMessage("");try{const path=await api.chooseBackupDestination(timestampedBackupFileName(new Date()));if(!path)return;const result=await api.createBackup(path);setMessage(`Utworzono kopię: ${result.path}`);}catch(e){setError(settingsError(e).message);}finally{setBusy(false);}}
   async function choose(){setBusy(true);setError("");setMessage("");setPending(null);setConfirmed(false);try{const source=await api.chooseBackupSource();if(!source)return;const summary=await api.inspectBackup(source);setPending({source,summary});}catch(e){setError(settingsError(e).message);}finally{setBusy(false);}}
   function cancel(){setPending(null);setConfirmed(false);picker.current?.focus();}
-  async function restore(){if(!pending||!confirmed)return;setBusy(true);setMessage("");setError("");try{const result=await api.restoreBackup(pending.source,true);cancel();
+  async function restore(){if(!pending||!confirmed)return;setBusy(true);setMessage("");setError("");try{const result=await api.restoreBackup(pending.source,true,pending.summary.fingerprint);cancel();
     setMessage(`Przywrócono dane. Kopia poprzedniego stanu: ${result.recovery_backup_path}`);
     try{await onRestored();}catch(e){setError(`Dane przywrócono. Nie udało się odświeżyć panelu: ${settingsError(e).message}`);}
   }catch(e){setError(settingsError(e).message);}finally{setBusy(false);}}

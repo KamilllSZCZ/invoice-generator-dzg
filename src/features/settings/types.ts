@@ -8,7 +8,7 @@ export interface DocumentAppearanceSettings { template:string|null; accent_color
 export interface AppPreferences { language:string|null; theme:"system"|"light"|"dark"|null; density:"comfortable"|"compact"|null; }
 export interface AppSettings { company:SellerProfile; document_defaults:DocumentDefaults; numbering:NumberingSeriesSettings[]; appearance:DocumentAppearanceSettings; preferences:AppPreferences; }
 export interface NumberPreview { document_type:"invoice"; formatted_number:string; period_key:string; counter:number; }
-export interface BackupSummary { path:string; format_version:number; schema_version:number; app_version:string; created_at_utc:string; file_count:number; size_bytes:number; }
+export interface BackupSummary { path:string; format_version:number; schema_version:number; app_version:string; created_at_utc:string; file_count:number; size_bytes:number; fingerprint:string; }
 export interface RestoreSummary { restored_schema_version:number; recovery_backup_path:string; }
 export interface DataLocation { app_data_dir:string; database_path:string; assets_dir:string; }
 export type FieldErrors=Record<string,string>;

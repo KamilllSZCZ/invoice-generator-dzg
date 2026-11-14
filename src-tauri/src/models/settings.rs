@@ -52,7 +52,11 @@ pub struct NumberingSeriesSettings {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum NumberResetPolicy { Yearly, Monthly, Never }
+pub enum NumberResetPolicy {
+    Yearly,
+    Monthly,
+    Never,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NumberPreview {

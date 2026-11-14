@@ -13,7 +13,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
-            let state = db::DatabaseState::open(app_data_dir).map_err(|error| {
+            let state = db::DatabaseState::open_single_instance(app_data_dir).map_err(|error| {
                 std::io::Error::other(format!("Could not initialize local database: {error}"))
             })?;
             app.manage(state);
